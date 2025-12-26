@@ -246,11 +246,19 @@ hifiasm -o contigs --ul "../$LONG_ALT" "$CCS_BASE" -t "$THREADS"
 awk '/^S/{print ">"$2;print $3}' contigs.bp.p_ctg.gfa > contigs.bp.p_ctg.fa
 ln -sf contigs.bp.p_ctg.fa optimized.fa
 
+# 3.3 Chromosome Scaffolding (Added to ensure chromosome-level output)
+# Software: ragtag.py
+echo "  - Scaffolding optimized assembly against reference to achieve chromosome-level output..."
+ragtag.py scaffold "../$REF" optimized.fa -t "$THREADS" -o .
+ln -sf ragtag.scaffold.fasta optimized_chromosome_level.fa
+
 # Clean up
 rm "$CCS_BASE"
 cd ..
 
 OPTIMIZED_ASM="Optimized_assembly/optimized.fa"
-echo "[Step 3] Done. Final optimized assembly at $OPTIMIZED_ASM"
+FINAL_ASM="Optimized_assembly/optimized_chromosome_level.fa"
+echo "[Step 3] Done. Final optimized assembly (contigs) at $OPTIMIZED_ASM"
+echo "        Final chromosome-level assembly at $FINAL_ASM"
 echo "============================================================================="
 echo "RAGA Workflow Completed Successfully."
