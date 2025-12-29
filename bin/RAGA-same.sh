@@ -362,7 +362,7 @@ fi
 # get algin block
 if [ "$mm" == "yes" ]; then
 	minimap2 -x asm5 -t $thr ${refbase2}_racon${npr}.fa ${qrybase2}_ragtag.fa > ${refbase2}_racon${npr}To${qrybase2}_ragtag.paf
-	awk -v dfl=$dfl -v dfi=$dfi '$11>=dfl && $10/$11>=dfi/100 {print $1"\t"$6"\t"$3+1"\t"$4"\t"$8+1"\t"$9}' ${refbase2}_racon${npr}To${qrybase2}_ragtag.paf | sort -k5,5n > ${refbase2}_racon${npr}To${qrybase2}_ragtag_f.coords
+	awk -v dfl=$dfl -v dfi=$dfi '$11>=dfl && $10/$11>=dfi/100 {printf("%s\t%s\t%d\t%d\t%d\t%d\n", $1, $6, $3+1, $4, $8+1, $9)}' ${refbase2}_racon${npr}To${qrybase2}_ragtag.paf | sort -k5,5n > ${refbase2}_racon${npr}To${qrybase2}_ragtag_f.coords
 else
 	nucmer -p ${refbase2}_racon${npr}To${qrybase2}_ragtag ${refbase2}_racon${npr}.fa ${qrybase2}_ragtag.fa -t $thr
 	delta-filter -i $dfi -l $dfl ${refbase2}_racon${npr}To${qrybase2}_ragtag.delta > ${refbase2}_racon${npr}To${qrybase2}_ragtag_f.delta
