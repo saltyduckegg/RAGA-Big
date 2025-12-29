@@ -124,6 +124,10 @@ do
 		solo="yes"
 		shift
 		;;
+		-mm)
+		mm="yes"
+		shift
+		;;
 		*)
 		echo "Sorry, the parameter you provided does not exist."
 		shift
@@ -153,6 +157,7 @@ Options:
 	-P FLOAT    extract the target longAlt read which align length is >= *% of its own length [0-1), default 0.5
 
 	Supp:
+	-mm         use minimap2 instead of nucmer for alignment
 	-t INT      number of threads, default 1
 	-v|-version show version number
 	-h|-help    show help information
@@ -182,7 +187,12 @@ fi
 if [ "$solo" != "yes" ]; then
 	echo -e "Verifying the availability of related dependencies."
 
-	for scr in minimap2 racon ragtag.py nucmer delta-filter show-coords awk hifiasm samtools seqkit
+	deps="minimap2 racon ragtag.py awk hifiasm samtools seqkit"
+	if [ "$mm" != "yes" ]; then
+		deps="$deps nucmer delta-filter show-coords"
+	fi
+
+	for scr in $deps
 	do
 		check=$(command -v $scr)
 		if [ "$check" == "" ]; then
@@ -350,9 +360,14 @@ else
 fi
 
 # get algin block
-nucmer -p ${refbase2}_racon${npr}To${qrybase2}_ragtag ${refbase2}_racon${npr}.fa ${qrybase2}_ragtag.fa -t $thr
-delta-filter -i $dfi -l $dfl ${refbase2}_racon${npr}To${qrybase2}_ragtag.delta > ${refbase2}_racon${npr}To${qrybase2}_ragtag_f.delta
-show-coords -b -B ${refbase2}_racon${npr}To${qrybase2}_ragtag_f.delta | awk '{if($9<$10){print $1"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12} else{print $1"\t"$8"\t"$10"\t"$9"\t"$11"\t"$12}}' > ${refbase2}_racon${npr}To${qrybase2}_ragtag_f.coords
+if [ "$mm" == "yes" ]; then
+	minimap2 -x asm5 -t $thr ${refbase2}_racon${npr}.fa ${qrybase2}_ragtag.fa > ${refbase2}_racon${npr}To${qrybase2}_ragtag.paf
+	awk -v dfl=$dfl -v dfi=$dfi '$11>=dfl && $10/$11>=dfi/100 {print $1"\t"$6"\t"$3+1"\t"$4"\t"$8+1"\t"$9}' ${refbase2}_racon${npr}To${qrybase2}_ragtag.paf | sort -k5,5n > ${refbase2}_racon${npr}To${qrybase2}_ragtag_f.coords
+else
+	nucmer -p ${refbase2}_racon${npr}To${qrybase2}_ragtag ${refbase2}_racon${npr}.fa ${qrybase2}_ragtag.fa -t $thr
+	delta-filter -i $dfi -l $dfl ${refbase2}_racon${npr}To${qrybase2}_ragtag.delta > ${refbase2}_racon${npr}To${qrybase2}_ragtag_f.delta
+	show-coords -b -B ${refbase2}_racon${npr}To${qrybase2}_ragtag_f.delta | awk '{if($9<$10){print $1"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12} else{print $1"\t"$8"\t"$10"\t"$9"\t"$11"\t"$12}}' > ${refbase2}_racon${npr}To${qrybase2}_ragtag_f.coords
+fi
 [[ $? -eq 0 ]] || exit 1
 
 # get gap.bed of ref; and get alternative long reads
