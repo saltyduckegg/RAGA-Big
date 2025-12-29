@@ -146,6 +146,10 @@ do
 		trio="trio"
 		shift
 		;;
+		-mm)
+		mm="yes"
+		shift
+		;;
 		*)
 		echo "Sorry, the parameter you provided does not exist."
 		shift
@@ -180,6 +184,7 @@ Options:
 	-P FLOAT    extract the target longAlt read which align length is >= *% of its own length [0-1), default 0.5
 
 	Supp:
+	-mm         use minimap2 instead of nucmer for alignment
 	-t INT      number of threads, default 1
 	-v|-version show version number
 	-h|-help    show help information
@@ -205,7 +210,12 @@ fi
 #=====================================================================
 echo -e "Step0: verifying the availability of related dependencies."
 
-for scr in minimap2 racon ragtag.py nucmer delta-filter show-coords awk hifiasm samtools seqkit
+deps="minimap2 racon ragtag.py awk hifiasm samtools seqkit"
+if [ "$mm" != "yes" ]; then
+	deps="$deps nucmer delta-filter show-coords"
+fi
+
+for scr in $deps
 do
 	check=$(command -v $scr)
 	if [ "$check" == "" ]; then
@@ -342,7 +352,11 @@ cd ..
 echo -e "Step2: generate alternative long reads with a reference genome."
 
 # 2.1
-RAGA-same.sh -r $ref -q Initial_assembly/initial.fa -c $ccs -o Alternative_reads -n $npr -i $dfi -l $dfl -p $per -P $PER -t $thr -solo
+cmd="RAGA-same.sh -r $ref -q Initial_assembly/initial.fa -c $ccs -o Alternative_reads -n $npr -i $dfi -l $dfl -p $per -P $PER -t $thr -solo"
+if [ "$mm" == "yes" ]; then
+	cmd="$cmd -mm"
+fi
+$cmd
 
 # 2.2 $?
 if [[ $? -eq 0 ]]; then
