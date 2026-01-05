@@ -350,9 +350,36 @@ else
 fi
 
 # get algin block
-nucmer -p ${refbase2}_racon${npr}To${qrybase2}_ragtag ${refbase2}_racon${npr}.fa ${qrybase2}_ragtag.fa -t $thr
-delta-filter -i $dfi -l $dfl ${refbase2}_racon${npr}To${qrybase2}_ragtag.delta > ${refbase2}_racon${npr}To${qrybase2}_ragtag_f.delta
-show-coords -b -B ${refbase2}_racon${npr}To${qrybase2}_ragtag_f.delta | awk '{if($9<$10){print $1"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12} else{print $1"\t"$8"\t"$10"\t"$9"\t"$11"\t"$12}}' > ${refbase2}_racon${npr}To${qrybase2}_ragtag_f.coords
+
+# old
+#nucmer -p ${refbase2}_racon${npr}To${qrybase2}_ragtag ${refbase2}_racon${npr}.fa ${qrybase2}_ragtag.fa -t $thr
+#delta-filter -i $dfi -l $dfl ${refbase2}_racon${npr}To${qrybase2}_ragtag.delta > ${refbase2}_racon${npr}To${qrybase2}_ragtag_f.delta
+#show-coords -b -B ${refbase2}_racon${npr}To${qrybase2}_ragtag_f.delta | awk '{if($9<$10){print $1"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12} else{print $1"\t"$8"\t"$10"\t"$9"\t"$11"\t"$12}}' > ${refbase2}_racon${npr}To${qrybase2}_ragtag_f.coords
+
+# new for big genome
+RefIn="${refbase2}_racon${npr}.fa"
+QryIn="${qrybase2}_ragtag.fa"
+FinalOut="${refbase2}_racon${npr}To${qrybase2}_ragtag_f.coords"
+seqkit seq -n "$RefIn" | awk '{print $1, $1"_RagTag"}' > pair_list.tmp
+: > "$FinalOut"
+while read rid qid; do
+    echo "Processing: $rid vs $qid"
+    seqkit grep -p "$rid" "$RefIn" -o "${rid}.ref.tmp"
+    seqkit grep -p "$qid" "$QryIn" -o "${qid}.qry.tmp"
+    if [ -s "${rid}.ref.tmp" ] && [ -s "${qid}.qry.tmp" ]; then
+        prefix="${rid}_vs_${qid}"
+        nucmer -p "$prefix" "${rid}.ref.tmp" "${qid}.qry.tmp" -t "$thr"
+        delta-filter -i "$dfi" -l "$dfl" "${prefix}.delta" > "${prefix}_f.delta"
+        show-coords -b -B "${prefix}_f.delta" | awk '{if($9<$10){print $1"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12} else{print $1"\t"$8"\t"$10"\t"$9"\t"$11"\t"$12}}'  > "${prefix}.coords.tmp"
+        rm "${prefix}.delta" "${prefix}_f.delta" "${rid}.ref.tmp" "${qid}.qry.tmp"
+    else
+        echo "Warning: Sequence $rid or $qid not found/empty. Skipping."
+        rm -f "${rid}.ref.tmp" "${qid}.qry.tmp"
+    fi
+done < pair_list.tmp
+cat *.coords.tmp > "$FinalOut"
+rm *.coords.tmp pair_list.tmp
+echo "Finished. Merged output: $FinalOut"
 [[ $? -eq 0 ]] || exit 1
 
 # get gap.bed of ref; and get alternative long reads
