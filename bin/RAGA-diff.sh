@@ -145,7 +145,7 @@ fi
 if [ "$solo" != "yes" ]; then
 	echo -e "Verifying the availability of related dependencies."
 
-	for scr in minimap2 racon ragtag.py nucmer delta-filter show-coords awk hifiasm samtools seqkit
+	for scr in minimap2 racon ragtag.py nucmer delta-filter show-coords awk hifiasm samtools seqkit pl_lenDis.pl
 	do
 		check=$(command -v $scr)
 		if [ "$check" == "" ]; then
@@ -155,6 +155,15 @@ if [ "$solo" != "yes" ]; then
 			echo -e "\t$scr is ok"
 		fi
 	done
+
+	# Check for Perl SVG module
+	if perl -e "use SVG;" 2>/dev/null; then
+		echo -e "\tPerl module SVG is ok"
+	else
+		echo -e "\tERROR: Perl module SVG is NOT installed. Please install it (e.g. cpan install SVG)."
+		exit 1
+	fi
+
 	echo -e "\tAll dependencies have been checked.\n"
 fi
 
